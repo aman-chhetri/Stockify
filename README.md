@@ -2,7 +2,7 @@
 
 > This app was made as a side project while learning Machine Learning.
 
-You can access the deployed application: [Live App](https://email-tonifier.streamlit.app/)
+You can access the deployed application: [Live App](https://stockify-app.streamlit.app/)
 
 ## About the Project 🧾
 
@@ -17,7 +17,7 @@ Stockify is a user-friendly Stock Prediction App powered by Streamlit, yfinance,
 - [plotly](https://plotly.com/python/)
 - [Python](https://www.python.org/)
 
-![Cover](./cover_lighttheme1.png)
+![Cover](./cover_page.png)
 
 ## **How to use 📦**
 
