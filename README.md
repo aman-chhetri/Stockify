@@ -45,6 +45,12 @@ pip install streamlit yfinance prophet plotly
 streamlit run app.py
 ```
 
+## Screenshots 🖼️
+![Image1](./image_1.png)
+![Image2](./image_2.png)
+![Iamge3](./image_3.png)
+
+
 ## Feedback and Contributions 🤝
 
 Feedback and contributions are welcome! If you have any suggestions for improving this project or adding new features, please feel free to open an issue using [GitHub Issues](https://github.com/aman-chhetri/Stockify/issues) or submit a pull request on the GitHub repository.
