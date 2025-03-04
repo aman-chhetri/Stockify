@@ -1,82 +1,94 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from datetime import date
-
-# Importing yfinance library to fetch the stock data 
 import yfinance as yf
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
 
-# Set the start and end date of the stock data to be downloaded  
-START ="2015-01-01"
+START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
 st.title('Stockify 💹: Stock Prediction App')
 st.text('Welcome to Stockify! Navigate the Future of Finance.')
 
-# Set the stock ticker symbols 
+# Set the stock ticker symbols
 stocks = ('AAPL', 'GOOG', 'MSFT', 'AMZN', 'TSLA', 'META')
 selected_stock = st.selectbox('Select dataset for prediction', stocks)
 
-# Set the number of years for prediction 
+# Set the number of years for prediction
 n_years = st.slider('Years of prediction:', 1, 5)
 period = n_years * 365
 
-# Load the stock data using yfinance library 
+# Load the stock data using yfinance
 @st.cache_data
 def load_data(ticker):
-    data = yf.download(ticker,START,TODAY)
-    data.reset_index(inplace=True)
-    return data
+    try:
+        data = yf.download(ticker, START, TODAY)
+        if data.empty:
+            st.error("Error: No data found for the selected stock.")
+            return None
+        data.reset_index(inplace=True)
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return None
 
-# Load the data 
-data_load_state = st.text("Load data...")
+# Load the data
+data_load_state = st.text("Loading data...")
 data = load_data(selected_stock)
-data_load_state.text("Loading data...Done!")
+data_load_state.text("Loading data... Done!")
 
-# Display the raw data 
+if data is None or data.empty:
+    st.stop()
+
+# Display the raw data
 st.subheader('Raw data')
 st.write(data.tail())
 
-# Plot raw data on graph using plotly library 
+# Plot raw data
 def plot_raw_data():
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data['Date'],y=data['Open'],name='stock_open'))
-    fig.add_trace(go.Scatter(x=data['Date'],y=data['Close'],name='stock_close'))
-    fig.layout.update(title_text='Time Series Data',xaxis_rangeslider_visible=True)
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='Stock Open'))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='Stock Close'))
+    fig.layout.update(title_text='Time Series Data', xaxis_rangeslider_visible=True)
     st.plotly_chart(fig)
 
 plot_raw_data()
 
-# Ensure data is loaded properly
-if data is not None and not data.empty:
-    # Forecasting using Prophet 
-    df_train = data[['Date', 'Close']].copy()  # Ensure it's a copy
+# Ensure data contains the necessary columns
+if 'Date' not in data.columns or 'Close' not in data.columns:
+    st.error("Error: Required columns ('Date', 'Close') are missing in the dataset.")
+    st.stop()
 
-    # Ensure 'Date' column is in datetime format
-    df_train['Date'] = pd.to_datetime(df_train['Date'], errors='coerce')
+# Prepare data for Prophet
+df_train = data[['Date', 'Close']].copy()
 
-    # Ensure 'Close' column is numeric
-    if 'Close' in df_train.columns:
-        df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
+# Convert data types safely
+df_train['Date'] = pd.to_datetime(df_train['Date'], errors='coerce')
 
-    # Drop rows with NaN values
-    df_train = df_train.dropna()
+if df_train['Close'].dtype != 'float64' and df_train['Close'].dtype != 'int64':
+    df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
 
-    # Rename columns for Prophet
-    df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+# Drop NaN values
+df_train.dropna(inplace=True)
 
-    # Create and train Prophet model
-    m = Prophet()
-    m.fit(df_train)
-else:
-    st.error("Error: No data available. Please check the stock ticker selection.")
+# Rename columns for Prophet
+df_train.rename(columns={"Date": "ds", "Close": "y"}, inplace=True)
 
+# Train the Prophet model
+if df_train.empty:
+    st.error("Error: No valid data available after preprocessing.")
+    st.stop()
+
+m = Prophet()
+m.fit(df_train)
+
+# Predict future values
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
-# Plot forecasted data on graph using plotly library
+# Plot forecasted data
 st.subheader('Forecast data')
 st.write(forecast.tail())
 
