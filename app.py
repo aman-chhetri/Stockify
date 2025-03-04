@@ -49,24 +49,30 @@ def plot_raw_data():
 
 plot_raw_data()
 
-# Forecasting using Prophet 
-df_train = data[['Date', 'Close']]
+# Ensure data is loaded properly
+if data is not None and not data.empty:
+    # Forecasting using Prophet 
+    df_train = data[['Date', 'Close']].copy()  # Ensure it's a copy
 
-# Ensure the 'Date' column is in datetime format
-df_train['Date'] = pd.to_datetime(df_train['Date'])
+    # Ensure 'Date' column is in datetime format
+    df_train['Date'] = pd.to_datetime(df_train['Date'], errors='coerce')
 
-# Ensure 'Close' column is numeric
-df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
+    # Ensure 'Close' column is numeric
+    if 'Close' in df_train.columns:
+        df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
 
-# Remove any rows with NaN values (caused by conversion issues)
-df_train = df_train.dropna()
+    # Drop rows with NaN values
+    df_train = df_train.dropna()
 
-# Rename columns for Prophet
-df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+    # Rename columns for Prophet
+    df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
-# Create a Prophet model 
-m = Prophet()
-m.fit(df_train)
+    # Create and train Prophet model
+    m = Prophet()
+    m.fit(df_train)
+else:
+    st.error("Error: No data available. Please check the stock ticker selection.")
+
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
