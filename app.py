@@ -12,21 +12,18 @@ TODAY = date.today().strftime("%Y-%m-%d")
 st.title('Stockify 💹: Stock Prediction App')
 st.text('Welcome to Stockify! Navigate the Future of Finance.')
 
-# Set the stock ticker symbols
 stocks = ('AAPL', 'GOOG', 'MSFT', 'AMZN', 'TSLA', 'META')
 selected_stock = st.selectbox('Select dataset for prediction', stocks)
 
-# Set the number of years for prediction
 n_years = st.slider('Years of prediction:', 1, 5)
 period = n_years * 365
 
-# Load the stock data using yfinance
 @st.cache_data
 def load_data(ticker):
     try:
         data = yf.download(ticker, START, TODAY)
         if data.empty:
-            st.error("Error: No data found for the selected stock.")
+            st.error("No data found for the selected stock.")
             return None
         data.reset_index(inplace=True)
         return data
@@ -34,7 +31,6 @@ def load_data(ticker):
         st.error(f"Error loading data: {e}")
         return None
 
-# Load the data
 data_load_state = st.text("Loading data...")
 data = load_data(selected_stock)
 data_load_state.text("Loading data... Done!")
@@ -42,11 +38,9 @@ data_load_state.text("Loading data... Done!")
 if data is None or data.empty:
     st.stop()
 
-# Display the raw data
 st.subheader('Raw data')
 st.write(data.tail())
 
-# Plot raw data
 def plot_raw_data():
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='Stock Open'))
@@ -56,39 +50,36 @@ def plot_raw_data():
 
 plot_raw_data()
 
-# Ensure data contains the necessary columns
+# **Check if required columns exist**
 if 'Date' not in data.columns or 'Close' not in data.columns:
-    st.error("Error: Required columns ('Date', 'Close') are missing in the dataset.")
+    st.error("Required columns ('Date', 'Close') are missing. Check the dataset format.")
+    st.write("Columns available:", data.columns.tolist())
     st.stop()
 
-# Prepare data for Prophet
 df_train = data[['Date', 'Close']].copy()
-
-# Convert data types safely
-df_train['Date'] = pd.to_datetime(df_train['Date'], errors='coerce')
-
-if df_train['Close'].dtype != 'float64' and df_train['Close'].dtype != 'int64':
-    df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
-
-# Drop NaN values
 df_train.dropna(inplace=True)
 
-# Rename columns for Prophet
+df_train['Date'] = pd.to_datetime(df_train['Date'], errors='coerce')
+
+# **Check before conversion**
+st.write("Data types before conversion:", df_train.dtypes)
+
+if not pd.api.types.is_numeric_dtype(df_train['Close']):
+    df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
+
 df_train.rename(columns={"Date": "ds", "Close": "y"}, inplace=True)
 
-# Train the Prophet model
+# **Final check**
 if df_train.empty:
-    st.error("Error: No valid data available after preprocessing.")
+    st.error("No valid data available after preprocessing.")
     st.stop()
 
 m = Prophet()
 m.fit(df_train)
 
-# Predict future values
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
-# Plot forecasted data
 st.subheader('Forecast data')
 st.write(forecast.tail())
 
