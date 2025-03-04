@@ -49,7 +49,18 @@ def plot_raw_data():
 plot_raw_data()
 
 # Forecasting using Prophet 
-df_train = data[['Date','Close']]
+df_train = data[['Date', 'Close']]
+
+# Ensure the 'Date' column is in datetime format
+df_train['Date'] = pd.to_datetime(df_train['Date'])
+
+# Ensure 'Close' column is numeric
+df_train['Close'] = pd.to_numeric(df_train['Close'], errors='coerce')
+
+# Remove any rows with NaN values (caused by conversion issues)
+df_train = df_train.dropna()
+
+# Rename columns for Prophet
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
 # Create a Prophet model 
